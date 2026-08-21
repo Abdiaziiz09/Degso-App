@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/download_item.dart';
@@ -151,6 +152,12 @@ class _DownloadsScreenState extends State<DownloadsScreen>
       appBar: AppBar(
         title: const Text('Downloads'),
         actions: [
+          if (!kIsWeb)
+            IconButton(
+              icon: const Icon(Icons.photo_library_outlined),
+              tooltip: 'Open Device Gallery',
+              onPressed: () => downloadProvider.openGallery(),
+            ),
           if (downloadProvider.completedDownloads.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_sweep_outlined),
@@ -303,6 +310,22 @@ class _DownloadsScreenState extends State<DownloadsScreen>
                             item: item,
                             onOpen: () => downloadProvider.openFile(item),
                             onShare: () => downloadProvider.shareFile(item),
+                            onSaveToGallery: () async {
+                              final saved =
+                                  await downloadProvider.saveItemToGallery(item);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(saved
+                                        ? 'Saved to Gallery in the "Degso" album!'
+                                        : 'Could not export to Gallery.'),
+                                    backgroundColor:
+                                        saved ? Colors.green : Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            },
                             onDelete: () =>
                                 _showDeleteSingleDialog(context, item),
                           );

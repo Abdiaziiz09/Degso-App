@@ -1,53 +1,69 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:gal/gal.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../models/download_item.dart';
 
 class PlatformFileHelper {
+  /// Request permissions gracefully without blocking scoped app storage
   static Future<bool> requestStoragePermission() async {
-    if (Platform.isAndroid) {
-      final videoStatus = await Permission.videos.status;
-      final audioStatus = await Permission.audio.status;
-
-      if (!videoStatus.isGranted || !audioStatus.isGranted) {
-        final statuses = await [
-          Permission.videos,
-          Permission.audio,
-          Permission.storage,
-        ].request();
-
-        if (statuses[Permission.videos]?.isGranted == true ||
-            statuses[Permission.storage]?.isGranted == true) {
-          return true;
+    try {
+      if (Platform.isAndroid) {
+        // Modern Android (API 29+) does not require storage permissions for app storage or MediaStore
+        final videoStatus = await Permission.videos.status;
+        if (!videoStatus.isGranted) {
+          await [
+            Permission.videos,
+            Permission.audio,
+            Permission.photos,
+          ].request();
+        }
+      } else if (Platform.isIOS) {
+        final hasAccess = await Gal.hasAccess(toAlbum: true);
+        if (!hasAccess) {
+          await Gal.requestAccess(toAlbum: true);
         }
       }
-
-      final storageStatus = await Permission.storage.status;
-      if (!storageStatus.isGranted) {
-        final res = await Permission.storage.request();
-        return res.isGranted;
-      }
+    } catch (e) {
+      debugPrint('Permission request note: $e');
     }
+    // Always allow download to proceed into app storage / MediaStore
     return true;
   }
 
+  /// Get the target directory for writing download streams
   static Future<String> getDownloadsDirectoryPath() async {
     if (Platform.isAndroid) {
-      final publicDownloads = Directory('/storage/emulated/0/Download');
-      if (await publicDownloads.exists()) {
-        final degsoDir = Directory(p.join(publicDownloads.path, 'Degso'));
-        if (!await degsoDir.exists()) {
-          await degsoDir.create(recursive: true);
+      // 1. Try public Download folder if accessible
+      try {
+        final publicDownloads = Directory('/storage/emulated/0/Download');
+        if (await publicDownloads.exists()) {
+          final degsoDir = Directory(p.join(publicDownloads.path, 'Degso'));
+          if (!await degsoDir.exists()) {
+            await degsoDir.create(recursive: true);
+          }
+          return degsoDir.path;
         }
-        return degsoDir.path;
+      } catch (e) {
+        debugPrint('Public downloads folder access note: $e');
       }
 
-      final extDir = await getExternalStorageDirectory();
-      if (extDir != null) {
-        return extDir.path;
+      // 2. Try App External Files Directory (Scoped storage, 100% accessible with no permissions needed)
+      try {
+        final extDir = await getExternalStorageDirectory();
+        if (extDir != null) {
+          final degsoDir = Directory(p.join(extDir.path, 'Degso'));
+          if (!await degsoDir.exists()) {
+            await degsoDir.create(recursive: true);
+          }
+          return degsoDir.path;
+        }
+      } catch (e) {
+        debugPrint('External app storage access note: $e');
       }
     } else if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       final downloads = await getDownloadsDirectory();
@@ -60,6 +76,7 @@ class PlatformFileHelper {
       }
     }
 
+    // Fallback for iOS or any other platform
     final appDocDir = await getApplicationDocumentsDirectory();
     final degsoDir = Directory(p.join(appDocDir.path, 'Degso'));
     if (!await degsoDir.exists()) {
@@ -77,6 +94,58 @@ class PlatformFileHelper {
       count++;
     }
     return targetPath;
+  }
+
+  /// Automatically save/index video directly to device's native Gallery
+  static Future<bool> saveToGallery(String filePath, {bool isVideo = true}) async {
+    try {
+      if (Platform.isAndroid || Platform.isIOS) {
+        final hasAccess = await Gal.hasAccess(toAlbum: true);
+        if (!hasAccess) {
+          final granted = await Gal.requestAccess(toAlbum: true);
+          if (!granted) {
+            // Even if explicit album access is denied, attempt direct put
+            try {
+              if (isVideo) {
+                await Gal.putVideo(filePath);
+              } else {
+                await Gal.putImage(filePath);
+              }
+              return true;
+            } catch (_) {}
+            return false;
+          }
+        }
+        if (isVideo) {
+          await Gal.putVideo(filePath, album: 'Degso');
+        } else {
+          await Gal.putImage(filePath, album: 'Degso');
+        }
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Gal saveToGallery error: $e');
+      try {
+        if (isVideo) {
+          await Gal.putVideo(filePath);
+        } else {
+          await Gal.putImage(filePath);
+        }
+        return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+
+  /// Open device native Gallery app
+  static Future<void> openGallery() async {
+    try {
+      if (Platform.isAndroid || Platform.isIOS) {
+        await Gal.open();
+      }
+    } catch (e) {
+      debugPrint('Gal openGallery error: $e');
+    }
   }
 
   static Future<void> saveHistoryToFile(

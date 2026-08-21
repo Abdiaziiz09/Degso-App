@@ -17,6 +17,12 @@ class PlatformFileHelper {
     return '$cleanTitle.$extension';
   }
 
+  static Future<bool> saveToGallery(String filePath, {bool isVideo = true}) async {
+    return false;
+  }
+
+  static Future<void> openGallery() async {}
+
   static Future<void> saveHistoryToFile(
       String fileName, List<DownloadItem> history) async {
     _inMemoryWebHistory.clear();

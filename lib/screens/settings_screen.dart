@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -23,17 +24,41 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           // Storage Section
-          _buildSectionHeader('Storage & Downloads', theme),
+          _buildSectionHeader('Storage & Gallery', theme),
           Card(
             child: Column(
               children: [
+                if (!kIsWeb)
+                  ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Colors.green,
+                      child: Icon(Icons.photo_library_rounded, color: Colors.white, size: 20),
+                    ),
+                    title: const Text(
+                      'Device Gallery Album',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    subtitle: Text(
+                      'Saved to "Degso" album in your native Gallery / Photos app',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      ),
+                    ),
+                    trailing: TextButton.icon(
+                      onPressed: () => downloadProvider.openGallery(),
+                      icon: const Icon(Icons.launch_rounded, size: 16),
+                      label: const Text('Open'),
+                    ),
+                  ),
+                if (!kIsWeb) const Divider(height: 1),
                 ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: AppTheme.primaryRed,
                     child: Icon(Icons.folder_rounded, color: Colors.white, size: 20),
                   ),
                   title: const Text(
-                    'Download Location',
+                    'Storage Folder Path',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   subtitle: Text(
@@ -152,7 +177,7 @@ class SettingsScreen extends StatelessWidget {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Text(
-                    'Degso Downloader is a high-performance, open-source video and audio downloader for YouTube built with Flutter and YoutubeExplode.\n\nDisclaimer: Please respect content creators and copyright laws in your jurisdiction. Only download media you have the right to access offline.',
+                    'Degso Downloader is a high-performance, open-source video and audio downloader for YouTube built with Flutter and YoutubeExplode.\n\nVideos are automatically exported to your device Gallery/Photos in the "Degso" album for offline playback.',
                     style: TextStyle(fontSize: 12, height: 1.4, color: Colors.grey),
                   ),
                 ),

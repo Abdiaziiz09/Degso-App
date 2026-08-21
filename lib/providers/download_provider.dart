@@ -80,9 +80,10 @@ class DownloadProvider extends ChangeNotifier {
     required ParsedVideoInfo video,
     required StreamOption option,
   }) async {
-    final hasPermission = await _storageService.requestStoragePermission();
-    if (!hasPermission) {
-      throw Exception('Storage permission denied by user');
+    try {
+      await _storageService.requestStoragePermission();
+    } catch (e) {
+      debugPrint('Storage permission request: $e');
     }
 
     final downloadId = _uuid.v4();
@@ -147,6 +148,17 @@ class DownloadProvider extends ChangeNotifier {
           downloadItem.totalBytes > 0 ? downloadItem.totalBytes : 100;
       downloadItem.completedAt = DateTime.now();
 
+      // Automatically save video to Device Gallery (Degso Album)
+      if (downloadItem.type != DownloadType.audioOnly && targetPath.isNotEmpty) {
+        try {
+          final isVideo = downloadItem.fileExtension.toLowerCase() != 'mp3' &&
+              downloadItem.fileExtension.toLowerCase() != 'm4a';
+          await _storageService.saveToGallery(targetPath, isVideo: isVideo);
+        } catch (e) {
+          debugPrint('Automatic gallery save error: $e');
+        }
+      }
+
       _activeDownloads.remove(downloadItem.id);
       _cancelTokens.remove(downloadItem.id);
       _completedDownloads.insert(0, downloadItem);
@@ -186,6 +198,20 @@ class DownloadProvider extends ChangeNotifier {
     if (item.filePath != null) {
       await _storageService.openFile(item.filePath!);
     }
+  }
+
+  /// Open device Gallery
+  Future<void> openGallery() async {
+    await _storageService.openGallery();
+  }
+
+  /// Manually save/export item to Gallery
+  Future<bool> saveItemToGallery(DownloadItem item) async {
+    if (item.filePath != null) {
+      final isVideo = item.type != DownloadType.audioOnly;
+      return await _storageService.saveToGallery(item.filePath!, isVideo: isVideo);
+    }
+    return false;
   }
 
   /// Share the downloaded media file

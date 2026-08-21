@@ -40,6 +40,16 @@ class StorageService {
         dirPath, cleanTitle, extension);
   }
 
+  /// Save video file directly to device's native Gallery
+  Future<bool> saveToGallery(String filePath, {bool isVideo = true}) async {
+    return await PlatformFileHelper.saveToGallery(filePath, isVideo: isVideo);
+  }
+
+  /// Open device's native Gallery app
+  Future<void> openGallery() async {
+    await PlatformFileHelper.openGallery();
+  }
+
   /// Save download history list
   Future<void> saveHistory(List<DownloadItem> history) async {
     await PlatformFileHelper.saveHistoryToFile(_historyFileName, history);

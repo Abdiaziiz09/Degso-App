@@ -9,6 +9,7 @@ class DownloadTile extends StatelessWidget {
   final VoidCallback? onOpen;
   final VoidCallback? onShare;
   final VoidCallback? onDelete;
+  final VoidCallback? onSaveToGallery;
 
   const DownloadTile({
     super.key,
@@ -17,6 +18,7 @@ class DownloadTile extends StatelessWidget {
     this.onOpen,
     this.onShare,
     this.onDelete,
+    this.onSaveToGallery,
   });
 
   @override
@@ -25,6 +27,7 @@ class DownloadTile extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final isDownloading = item.status == DownloadStatus.downloading;
     final isCompleted = item.status == DownloadStatus.completed;
+    final isVideo = item.type != DownloadType.audioOnly;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -87,7 +90,9 @@ class DownloadTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
-                      Row(
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -104,7 +109,30 @@ class DownloadTile extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          if (isCompleted && isVideo)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.photo_library_outlined,
+                                      size: 11, color: Colors.green.shade700),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    'In Gallery',
+                                    style: TextStyle(
+                                      color: isDark ? Colors.green.shade300 : Colors.green.shade800,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           Text(
                             item.formattedTotalSize,
                             style: TextStyle(
@@ -131,6 +159,7 @@ class DownloadTile extends StatelessWidget {
                     onSelected: (val) {
                       if (val == 'open') onOpen?.call();
                       if (val == 'share') onShare?.call();
+                      if (val == 'gallery') onSaveToGallery?.call();
                       if (val == 'delete') onDelete?.call();
                     },
                     itemBuilder: (context) => [
@@ -144,6 +173,17 @@ class DownloadTile extends StatelessWidget {
                           ],
                         ),
                       ),
+                      if (isVideo)
+                        const PopupMenuItem(
+                          value: 'gallery',
+                          child: Row(
+                            children: [
+                              Icon(Icons.photo_album_outlined, size: 20),
+                              SizedBox(width: 8),
+                              Text('Save to Gallery (Degso)'),
+                            ],
+                          ),
+                        ),
                       const PopupMenuItem(
                         value: 'share',
                         child: Row(
