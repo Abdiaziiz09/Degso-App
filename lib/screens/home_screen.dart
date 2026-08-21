@@ -1,0 +1,379 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../providers/download_provider.dart';
+import '../theme/app_theme.dart';
+import '../widgets/stream_selection_sheet.dart';
+import '../widgets/video_preview_card.dart';
+
+class HomeScreen extends StatefulWidget {
+  final VoidCallback onNavigateToDownloads;
+
+  const HomeScreen({super.key, required this.onNavigateToDownloads});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _urlController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  final List<Map<String, String>> _samplePresets = [
+    {
+      'title': 'Big Buck Bunny',
+      'url': 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
+    },
+    {
+      'title': 'Flutter 100s',
+      'url': 'https://www.youtube.com/watch?v=b_sQ9bMltGU',
+    },
+  ];
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pasteFromClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data?.text != null && data!.text!.trim().isNotEmpty) {
+      _urlController.text = data.text!.trim();
+      _search();
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Clipboard is empty or does not contain text'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _search() {
+    final text = _urlController.text.trim();
+    if (text.isEmpty) return;
+    _focusNode.unfocus();
+    final provider = context.read<DownloadProvider>();
+    provider.fetchVideoInfo(text);
+  }
+
+  void _onDownloadPressed() {
+    final provider = context.read<DownloadProvider>();
+    final video = provider.currentVideo;
+    if (video == null) return;
+
+    StreamSelectionSheet.show(
+      context,
+      video: video,
+      onOptionSelected: (option) async {
+        try {
+          await provider.startDownload(video: video, option: option);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Started downloading "${video.title}"'),
+                action: SnackBarAction(
+                  label: 'View',
+                  textColor: Colors.white,
+                  onPressed: widget.onNavigateToDownloads,
+                ),
+                backgroundColor: AppTheme.primaryRed,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Download failed: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final downloadProvider = context.watch<DownloadProvider>();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryRed,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Degso',
+              style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5),
+            ),
+            const Text(
+              ' Downloader',
+              style: TextStyle(fontWeight: FontWeight.w300, color: AppTheme.primaryRed),
+            ),
+          ],
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Hero card banner
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [const Color(0xFF2C1016), const Color(0xFF1E1424)]
+                      : [const Color(0xFFFFECEF), const Color(0xFFF7EBFD)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppTheme.primaryRed.withValues(alpha: 0.18),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.cloud_download_outlined,
+                        color: AppTheme.primaryRed,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Fast & Clean Video Downloader',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Paste any YouTube video or shorts link to download MP4 video or MP3 audio directly to your device.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            // Search URL Input field
+            TextField(
+              controller: _urlController,
+              focusNode: _focusNode,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => _search(),
+              decoration: InputDecoration(
+                hintText: 'Paste YouTube URL or Video ID...',
+                prefixIcon: const Icon(Icons.link_rounded),
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_urlController.text.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.clear, size: 20),
+                        onPressed: () {
+                          _urlController.clear();
+                          downloadProvider.clearCurrentVideo();
+                          setState(() {});
+                        },
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.content_paste_rounded, size: 20),
+                      tooltip: 'Paste from clipboard',
+                      onPressed: _pasteFromClipboard,
+                    ),
+                  ],
+                ),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Action Search button
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: downloadProvider.isLoadingVideo ? null : _search,
+                icon: downloadProvider.isLoadingVideo
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.search_rounded),
+                label: Text(
+                  downloadProvider.isLoadingVideo
+                      ? 'Analyzing Video...'
+                      : 'Fetch Video Information',
+                ),
+              ),
+            ),
+
+            // Preset samples
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Text(
+                  'Quick Samples:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _samplePresets.map((preset) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ActionChip(
+                            label: Text(preset['title']!, style: const TextStyle(fontSize: 12)),
+                            avatar: const Icon(Icons.play_circle_outline, size: 14),
+                            onPressed: () {
+                              _urlController.text = preset['url']!;
+                              _search();
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Error display
+            if (downloadProvider.videoFetchError != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade900.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade400.withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        downloadProvider.videoFetchError!,
+                        style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Video Preview Card
+            if (downloadProvider.currentVideo != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Video Found',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              VideoPreviewCard(
+                video: downloadProvider.currentVideo!,
+                onDownloadPressed: _onDownloadPressed,
+              ),
+            ],
+
+            // Active downloads preview badge if any
+            if (downloadProvider.activeDownloadCount > 0) ...[
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: widget.onNavigateToDownloads,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryRed.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.primaryRed.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.primaryRed,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          '${downloadProvider.activeDownloadCount} active download(s) in progress',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryRed,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.primaryRed),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+}
