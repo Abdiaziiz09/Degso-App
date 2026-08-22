@@ -32,11 +32,12 @@ class StreamSelectionSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isTiktok = video.platform == VideoPlatform.tiktok;
 
     return DefaultTabController(
       length: 3,
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.72,
+        height: MediaQuery.of(context).size.height * 0.75,
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -62,7 +63,7 @@ class StreamSelectionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Header with short title
+            // Header with thumbnail & short title
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -78,7 +79,10 @@ class StreamSelectionSheet extends StatelessWidget {
                         width: 54,
                         height: 54,
                         color: Colors.grey.shade800,
-                        child: const Icon(Icons.movie, color: Colors.white),
+                        child: Icon(
+                          isTiktok ? Icons.music_note : Icons.movie,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -96,11 +100,32 @@ class StreamSelectionSheet extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          'Choose format & quality',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
-                          ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: isTiktok ? Colors.pinkAccent : AppTheme.primaryRed,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                isTiktok ? 'TikTok' : 'YouTube',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              isTiktok ? 'No-Watermark Available' : 'Select Quality',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -126,57 +151,104 @@ class StreamSelectionSheet extends StatelessWidget {
                 indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: Colors.transparent,
                 indicator: BoxDecoration(
-                  color: AppTheme.primaryRed,
+                  color: isTiktok ? const Color(0xFFFE2C55) : AppTheme.primaryRed,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 labelColor: Colors.white,
                 unselectedLabelColor: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                 labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                tabs: const [
-                  Tab(
-                    icon: Icon(Icons.videocam_rounded, size: 18),
-                    text: 'Video (Audio)',
-                  ),
-                  Tab(
-                    icon: Icon(Icons.music_note_rounded, size: 18),
-                    text: 'Audio Only',
-                  ),
-                  Tab(
-                    icon: Icon(Icons.hd_rounded, size: 18),
-                    text: 'HD Video',
-                  ),
-                ],
+                tabs: isTiktok
+                    ? const [
+                        Tab(
+                          icon: Icon(Icons.stars_rounded, size: 18),
+                          text: 'No Watermark',
+                        ),
+                        Tab(
+                          icon: Icon(Icons.music_note_rounded, size: 18),
+                          text: 'Audio (MP3)',
+                        ),
+                        Tab(
+                          icon: Icon(Icons.water_drop_outlined, size: 18),
+                          text: 'With Watermark',
+                        ),
+                      ]
+                    : const [
+                        Tab(
+                          icon: Icon(Icons.videocam_rounded, size: 18),
+                          text: 'Video (Audio)',
+                        ),
+                        Tab(
+                          icon: Icon(Icons.music_note_rounded, size: 18),
+                          text: 'Audio Only',
+                        ),
+                        Tab(
+                          icon: Icon(Icons.hd_rounded, size: 18),
+                          text: 'HD Video',
+                        ),
+                      ],
               ),
             ),
 
             // Tab contents
             Expanded(
               child: TabBarView(
-                children: [
-                  // Tab 1: Video + Audio Muxed
-                  _buildStreamList(
-                    context,
-                    options: video.muxedStreams,
-                    emptyMessage: 'No standard video+audio streams found.',
-                    bannerMessage: 'Plays immediately in any media player with full sound.',
-                  ),
+                children: isTiktok
+                    ? [
+                        // TikTok Tab 1: No Watermark Streams
+                        _buildStreamList(
+                          context,
+                          options: video.muxedStreams,
+                          emptyMessage: 'No clean video streams found.',
+                          bannerMessage: '✨ Clean video with no TikTok logo or watermark overlay.',
+                          isTiktok: true,
+                        ),
 
-                  // Tab 2: Audio Only
-                  _buildStreamList(
-                    context,
-                    options: video.audioStreams,
-                    emptyMessage: 'No audio streams found.',
-                    bannerMessage: 'High bitrate audio for music or podcasts.',
-                  ),
+                        // TikTok Tab 2: Audio Only (MP3 Sound)
+                        _buildStreamList(
+                          context,
+                          options: video.audioStreams,
+                          emptyMessage: 'No audio stream found.',
+                          bannerMessage: '🎵 Original TikTok music and audio track in MP3.',
+                          isTiktok: true,
+                        ),
 
-                  // Tab 3: Video Only (1080p, 4K)
-                  _buildStreamList(
-                    context,
-                    options: video.videoOnlyStreams,
-                    emptyMessage: 'No high-definition video streams found.',
-                    bannerMessage: 'Note: High-res streams from YouTube are video-only streams.',
-                  ),
-                ],
+                        // TikTok Tab 3: With Watermark
+                        _buildStreamList(
+                          context,
+                          options: video.videoOnlyStreams,
+                          emptyMessage: 'No watermarked video stream found.',
+                          bannerMessage: 'Original video with TikTok username and watermark.',
+                          isTiktok: true,
+                        ),
+                      ]
+                    : [
+                        // YouTube Tab 1: Video + Audio Muxed
+                        _buildStreamList(
+                          context,
+                          options: video.muxedStreams,
+                          emptyMessage: 'No standard video+audio streams found.',
+                          bannerMessage: 'Plays immediately in any media player with full sound.',
+                          isTiktok: false,
+                        ),
+
+                        // YouTube Tab 2: Audio Only
+                        _buildStreamList(
+                          context,
+                          options: video.audioStreams,
+                          emptyMessage: 'No audio streams found.',
+                          bannerMessage: 'High bitrate audio for music or podcasts.',
+                          isTiktok: false,
+                        ),
+
+                        // YouTube Tab 3: Video Only (1080p, 4K)
+                        _buildStreamList(
+                          context,
+                          options: video.videoOnlyStreams,
+                          emptyMessage: 'No high-definition video streams found.',
+                          bannerMessage: 'Note: High-res streams from YouTube are video-only streams.',
+                          isTiktok: false,
+                        ),
+                      ],
               ),
             ),
           ],
@@ -190,6 +262,7 @@ class StreamSelectionSheet extends StatelessWidget {
     required List<StreamOption> options,
     required String emptyMessage,
     String? bannerMessage,
+    required bool isTiktok,
   }) {
     if (options.isEmpty) {
       return Center(
@@ -206,6 +279,7 @@ class StreamSelectionSheet extends StatelessWidget {
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final accentColor = isTiktok ? const Color(0xFFFE2C55) : AppTheme.primaryRed;
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -215,13 +289,17 @@ class StreamSelectionSheet extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: AppTheme.primaryRed.withValues(alpha: 0.08),
+              color: accentColor.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppTheme.primaryRed.withValues(alpha: 0.2)),
+              border: Border.all(color: accentColor.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, size: 16, color: AppTheme.primaryRed),
+                Icon(
+                  isTiktok ? Icons.auto_awesome : Icons.info_outline,
+                  size: 16,
+                  color: accentColor,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -236,6 +314,8 @@ class StreamSelectionSheet extends StatelessWidget {
             ),
           ),
         ...options.map((option) {
+          final isNoWm = option.isNoWatermark;
+
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
@@ -244,26 +324,54 @@ class StreamSelectionSheet extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryRed.withValues(alpha: 0.12),
+                  color: isNoWm
+                      ? Colors.teal.withValues(alpha: 0.15)
+                      : accentColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
-                  child: Text(
-                    option.container.toUpperCase(),
-                    style: const TextStyle(
-                      color: AppTheme.primaryRed,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
+                  child: isNoWm
+                      ? const Icon(Icons.verified_rounded, color: Colors.teal, size: 22)
+                      : Text(
+                          option.container.toUpperCase(),
+                          style: TextStyle(
+                            color: accentColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
                 ),
               ),
-              title: Text(
-                option.label,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      option.label,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                  if (isNoWm)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.shade700,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'NO LOGO',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               subtitle: Text(
-                'Approx size: ${option.formattedSize}',
+                option.sizeInBytes > 0
+                    ? 'Size: ${option.formattedSize}'
+                    : 'Fast Download • MP4',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
               trailing: ElevatedButton(
@@ -272,6 +380,7 @@ class StreamSelectionSheet extends StatelessWidget {
                   onOptionSelected(option);
                 },
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: accentColor,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   minimumSize: const Size(0, 36),
                 ),

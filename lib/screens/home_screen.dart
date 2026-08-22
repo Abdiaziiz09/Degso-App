@@ -19,14 +19,21 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _urlController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  final List<Map<String, String>> _samplePresets = [
+  final List<Map<String, dynamic>> _samplePresets = [
     {
-      'title': 'Big Buck Bunny',
+      'title': 'Big Buck Bunny (YouTube)',
       'url': 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
+      'isTiktok': false,
     },
     {
-      'title': 'Flutter 100s',
+      'title': 'Flutter in 100s (YouTube)',
       'url': 'https://www.youtube.com/watch?v=b_sQ9bMltGU',
+      'isTiktok': false,
+    },
+    {
+      'title': 'TikTok Sample (No-Watermark)',
+      'url': 'https://www.tiktok.com/@tiktok/video/7106594312292453678',
+      'isTiktok': true,
     },
   ];
 
@@ -76,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Started downloading "${video.title}"'),
+                content: Text('Downloading "${video.title}" to Gallery'),
                 action: SnackBarAction(
                   label: 'View',
                   textColor: Colors.white,
@@ -120,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: AppTheme.primaryRed,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+              child: const Icon(Icons.download_rounded, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 10),
             const Text(
@@ -128,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5),
             ),
             const Text(
-              ' Downloader',
+              ' All-In-One',
               style: TextStyle(fontWeight: FontWeight.w300, color: AppTheme.primaryRed),
             ),
           ],
@@ -139,15 +146,15 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hero card banner
+            // Hero card banner with YouTube & TikTok badges
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: isDark
-                      ? [const Color(0xFF2C1016), const Color(0xFF1E1424)]
-                      : [const Color(0xFFFFECEF), const Color(0xFFF7EBFD)],
+                      ? [const Color(0xFF2C1016), const Color(0xFF161F2E)]
+                      : [const Color(0xFFFFECEF), const Color(0xFFEBF7FD)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -161,27 +168,66 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(
-                        Icons.cloud_download_outlined,
-                        color: AppTheme.primaryRed,
-                        size: 22,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryRed,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.play_arrow_rounded, color: Colors.white, size: 14),
+                            SizedBox(width: 3),
+                            Text(
+                              'YouTube',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'Fast & Clean Video Downloader',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.7)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.music_note_rounded, color: Colors.cyanAccent, size: 14),
+                            SizedBox(width: 3),
+                            Text(
+                              'TikTok No-Watermark',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 10),
                   Text(
-                    'Paste any YouTube video or shorts link to download MP4 video or MP3 audio directly to your device.',
+                    'YouTube & TikTok Downloader',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Download videos in HD with no watermark, extract original MP3 audio, and save directly to your device Gallery.',
+                    style: TextStyle(
+                      fontSize: 12.5,
                       color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                       height: 1.3,
                     ),
@@ -199,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _search(),
               decoration: InputDecoration(
-                hintText: 'Paste YouTube URL or Video ID...',
+                hintText: 'Paste YouTube or TikTok video link...',
                 prefixIcon: const Icon(Icons.link_rounded),
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -244,7 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     : const Icon(Icons.search_rounded),
                 label: Text(
                   downloadProvider.isLoadingVideo
-                      ? 'Analyzing Video...'
+                      ? 'Fetching Video Details...'
                       : 'Fetch Video Information',
                 ),
               ),
@@ -268,13 +314,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: _samplePresets.map((preset) {
+                        final isTiktok = preset['isTiktok'] as bool;
                         return Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ActionChip(
-                            label: Text(preset['title']!, style: const TextStyle(fontSize: 12)),
-                            avatar: const Icon(Icons.play_circle_outline, size: 14),
+                            label: Text(
+                              preset['title'] as String,
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                            avatar: Icon(
+                              isTiktok ? Icons.music_note_rounded : Icons.play_arrow_rounded,
+                              size: 14,
+                              color: isTiktok ? Colors.cyanAccent : AppTheme.primaryRed,
+                            ),
                             onPressed: () {
-                              _urlController.text = preset['url']!;
+                              _urlController.text = preset['url'] as String;
                               _search();
                             },
                           ),

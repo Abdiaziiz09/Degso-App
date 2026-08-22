@@ -3,10 +3,12 @@ import 'package:uuid/uuid.dart';
 import '../models/download_item.dart';
 import '../models/video_info_model.dart';
 import '../services/storage_service.dart';
+import '../services/tiktok_service.dart';
 import '../services/youtube_service.dart';
 
 class DownloadProvider extends ChangeNotifier {
   final YoutubeService _youtubeService = YoutubeService();
+  final TiktokService _tiktokService = TiktokService();
   final StorageService _storageService = StorageService();
   final Uuid _uuid = const Uuid();
 
@@ -40,11 +42,11 @@ class DownloadProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Search and fetch details of a YouTube video
+  /// Search and fetch details of a YouTube or TikTok video (Auto-detect platform)
   Future<bool> fetchVideoInfo(String urlOrId) async {
     final cleaned = YoutubeService.cleanInput(urlOrId);
     if (cleaned.isEmpty) {
-      _videoFetchError = 'Please enter a valid YouTube URL or Video ID';
+      _videoFetchError = 'Please enter a valid YouTube or TikTok link';
       notifyListeners();
       return false;
     }
@@ -55,8 +57,16 @@ class DownloadProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final info = await _youtubeService.fetchVideoDetails(cleaned);
-      _currentVideo = info;
+      if (TiktokService.isValidUrl(cleaned)) {
+        // Fetch from TikTok
+        final info = await _tiktokService.fetchVideoDetails(cleaned);
+        _currentVideo = info;
+      } else {
+        // Fetch from YouTube
+        final info = await _youtubeService.fetchVideoDetails(cleaned);
+        _currentVideo = info;
+      }
+
       _isLoadingVideo = false;
       notifyListeners();
       return true;
@@ -115,6 +125,7 @@ class DownloadProvider extends ChangeNotifier {
 
     // Trigger async download
     _runDownloadTask(
+      video: video,
       downloadItem: downloadItem,
       option: option,
       targetPath: targetPath,
@@ -125,27 +136,46 @@ class DownloadProvider extends ChangeNotifier {
   }
 
   Future<void> _runDownloadTask({
+    required ParsedVideoInfo video,
     required DownloadItem downloadItem,
     required StreamOption option,
     required String targetPath,
     required DownloadCancelToken cancelToken,
   }) async {
     try {
-      await _youtubeService.downloadStream(
-        option: option,
-        destinationPath: targetPath,
-        cancelToken: cancelToken,
-        onProgress: (downloaded, total, speed) {
-          downloadItem.downloadedBytes = downloaded;
-          downloadItem.speedBytesPerSec = speed;
-          notifyListeners();
-        },
-      );
+      if (video.platform == VideoPlatform.tiktok) {
+        // Download via TikTok stream handler
+        await _tiktokService.downloadStream(
+          option: option,
+          destinationPath: targetPath,
+          cancelToken: cancelToken,
+          onProgress: (downloaded, total, speed) {
+            downloadItem.downloadedBytes = downloaded;
+            if (downloadItem.totalBytes <= 0 && total > 0) {
+              // Dynamically update total bytes if originally unknown
+            }
+            downloadItem.speedBytesPerSec = speed;
+            notifyListeners();
+          },
+        );
+      } else {
+        // Download via YouTube stream handler
+        await _youtubeService.downloadStream(
+          option: option,
+          destinationPath: targetPath,
+          cancelToken: cancelToken,
+          onProgress: (downloaded, total, speed) {
+            downloadItem.downloadedBytes = downloaded;
+            downloadItem.speedBytesPerSec = speed;
+            notifyListeners();
+          },
+        );
+      }
 
       // Successfully finished
       downloadItem.status = DownloadStatus.completed;
       downloadItem.downloadedBytes =
-          downloadItem.totalBytes > 0 ? downloadItem.totalBytes : 100;
+          downloadItem.totalBytes > 0 ? downloadItem.totalBytes : downloadItem.downloadedBytes;
       downloadItem.completedAt = DateTime.now();
 
       // Automatically save video to Device Gallery (Degso Album)

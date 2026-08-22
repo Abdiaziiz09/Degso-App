@@ -1,6 +1,11 @@
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import 'download_item.dart';
 
+enum VideoPlatform {
+  youtube,
+  tiktok,
+}
+
 class StreamOption {
   final StreamInfo? streamInfo;
   final String label;
@@ -9,6 +14,7 @@ class StreamOption {
   final DownloadType type;
   final String resolutionOrBitrate;
   final String? directUrl;
+  final bool isNoWatermark;
 
   StreamOption({
     this.streamInfo,
@@ -18,6 +24,7 @@ class StreamOption {
     required this.type,
     required this.resolutionOrBitrate,
     this.directUrl,
+    this.isNoWatermark = false,
   });
 
   String get formattedSize {
@@ -37,24 +44,30 @@ class ParsedVideoInfo {
   final String id;
   final String title;
   final String author;
+  final String? authorAvatarUrl;
   final Duration? duration;
   final String thumbnailUrl;
   final int viewCount;
+  final int likeCount;
   final DateTime? uploadDate;
   final String description;
-  final List<StreamOption> muxedStreams; // Video + Audio (ready to play)
+  final VideoPlatform platform;
+  final List<StreamOption> muxedStreams; // Video + Audio (ready to play / No-Watermark HD)
   final List<StreamOption> audioStreams; // Audio only (mp3/m4a/webm)
-  final List<StreamOption> videoOnlyStreams; // High-res video only (1080p, 4k)
+  final List<StreamOption> videoOnlyStreams; // High-res video only / Watermarked video
 
   ParsedVideoInfo({
     required this.id,
     required this.title,
     required this.author,
+    this.authorAvatarUrl,
     required this.duration,
     required this.thumbnailUrl,
-    required this.viewCount,
+    this.viewCount = 0,
+    this.likeCount = 0,
     required this.uploadDate,
     required this.description,
+    this.platform = VideoPlatform.youtube,
     required this.muxedStreams,
     required this.audioStreams,
     required this.videoOnlyStreams,
@@ -74,12 +87,24 @@ class ParsedVideoInfo {
   }
 
   String get formattedViews {
-    if (viewCount <= 0) return 'YouTube Video';
+    if (viewCount <= 0) {
+      return platform == VideoPlatform.tiktok ? 'TikTok Video' : 'YouTube Video';
+    }
     if (viewCount >= 1000000) {
       return '${(viewCount / 1000000).toStringAsFixed(1)}M views';
     } else if (viewCount >= 1000) {
       return '${(viewCount / 1000).toStringAsFixed(1)}K views';
     }
     return '$viewCount views';
+  }
+
+  String get formattedLikes {
+    if (likeCount <= 0) return '';
+    if (likeCount >= 1000000) {
+      return '${(likeCount / 1000000).toStringAsFixed(1)}M likes';
+    } else if (likeCount >= 1000) {
+      return '${(likeCount / 1000).toStringAsFixed(1)}K likes';
+    }
+    return '$likeCount likes';
   }
 }
