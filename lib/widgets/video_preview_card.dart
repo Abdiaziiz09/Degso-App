@@ -210,8 +210,8 @@ class VideoPreviewCard extends StatelessWidget {
                     icon: const Icon(Icons.download_rounded),
                     label: Text(
                       isTiktok
-                          ? 'Download No-Watermark Video / Audio'
-                          : 'Select Format & Download',
+                          ? 'Download No-Watermark MP4'
+                          : 'Select MP4 Quality',
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isTiktok ? const Color(0xFFFE2C55) : AppTheme.primaryRed,

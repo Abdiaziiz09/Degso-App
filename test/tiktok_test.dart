@@ -48,6 +48,35 @@ void main() {
       expect(option.isNoWatermark, isTrue);
       expect(option.formattedSize, '15 MB');
       expect(option.container, 'mp4');
+      expect(option.isMp4VideoWithAudio, isTrue);
+    });
+
+    test('Rejects audio-only and video-only download options', () {
+      final audioOption = StreamOption(
+        label: 'Audio only',
+        container: 'mp3',
+        sizeInBytes: 0,
+        type: DownloadType.audioOnly,
+        resolutionOrBitrate: '320 kbps',
+      );
+      final videoOnlyOption = StreamOption(
+        label: 'Video only',
+        container: 'mp4',
+        sizeInBytes: 0,
+        type: DownloadType.videoOnly,
+        resolutionOrBitrate: '1080p',
+      );
+      final nonMp4VideoOption = StreamOption(
+        label: 'WebM video with audio',
+        container: 'webm',
+        sizeInBytes: 0,
+        type: DownloadType.videoWithAudio,
+        resolutionOrBitrate: '720p',
+      );
+
+      expect(audioOption.isMp4VideoWithAudio, isFalse);
+      expect(videoOnlyOption.isMp4VideoWithAudio, isFalse);
+      expect(nonMp4VideoOption.isMp4VideoWithAudio, isFalse);
     });
 
     test('Creates TikTok ParsedVideoInfo with metrics correctly', () {
@@ -63,8 +92,7 @@ void main() {
         description: 'Hilarious comedy skit',
         platform: VideoPlatform.tiktok,
         muxedStreams: [],
-        audioStreams: [],
-        videoOnlyStreams: [],
+        watermarkedStreams: [],
       );
 
       expect(info.platform, VideoPlatform.tiktok);

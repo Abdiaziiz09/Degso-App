@@ -405,7 +405,7 @@ class _DownloadsScreenState extends State<DownloadsScreen>
             Text(
               _searchQuery.isNotEmpty
                   ? 'Try searching with a different keyword.'
-                  : 'Your completed video and audio downloads will appear here.',
+                  : 'Your completed MP4 video downloads will appear here.',
               style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               textAlign: TextAlign.center,
             ),

@@ -79,38 +79,15 @@ class YoutubeService {
         final manifest = await _yt.videos.streamsClient.getManifest(videoId);
 
         final muxedOptions = <StreamOption>[];
-        for (final stream in manifest.muxed.sortByVideoQuality()) {
+        for (final stream in manifest.muxed
+            .where((stream) => stream.container.name.toLowerCase() == 'mp4')
+            .sortByVideoQuality()) {
           muxedOptions.add(StreamOption(
             streamInfo: stream,
-            label: '${stream.qualityLabel} (${stream.container.name.toUpperCase()})',
+            label: '${stream.qualityLabel} (MP4 • Video + Audio)',
             container: stream.container.name,
             sizeInBytes: stream.size.totalBytes,
             type: DownloadType.videoWithAudio,
-            resolutionOrBitrate: stream.qualityLabel,
-          ));
-        }
-
-        final audioOptions = <StreamOption>[];
-        for (final stream in manifest.audioOnly.sortByBitrate()) {
-          final kbps = stream.bitrate.kiloBitsPerSecond.round();
-          audioOptions.add(StreamOption(
-            streamInfo: stream,
-            label: '$kbps kbps • ${stream.container.name.toUpperCase()}',
-            container: stream.container.name,
-            sizeInBytes: stream.size.totalBytes,
-            type: DownloadType.audioOnly,
-            resolutionOrBitrate: '$kbps kbps',
-          ));
-        }
-
-        final videoOnlyOptions = <StreamOption>[];
-        for (final stream in manifest.videoOnly.sortByVideoQuality()) {
-          videoOnlyOptions.add(StreamOption(
-            streamInfo: stream,
-            label: '${stream.qualityLabel} (${stream.container.name.toUpperCase()})',
-            container: stream.container.name,
-            sizeInBytes: stream.size.totalBytes,
-            type: DownloadType.videoOnly,
             resolutionOrBitrate: stream.qualityLabel,
           ));
         }
@@ -127,8 +104,6 @@ class YoutubeService {
           uploadDate: video.uploadDate,
           description: video.description,
           muxedStreams: muxedOptions,
-          audioStreams: audioOptions,
-          videoOnlyStreams: videoOnlyOptions,
         );
       } catch (e) {
         debugPrint('YoutubeExplode native resolution failed, falling back to oEmbed: $e');
@@ -177,44 +152,6 @@ class YoutubeService {
       ),
     ];
 
-    final audioStreams = [
-      StreamOption(
-        label: '320 kbps High Quality (MP3 Audio)',
-        container: 'mp3',
-        sizeInBytes: 0,
-        type: DownloadType.audioOnly,
-        resolutionOrBitrate: '320 kbps',
-        directUrl: 'https://loader.to/api/button/?url=https://www.youtube.com/watch?v=$videoId&f=mp3',
-      ),
-      StreamOption(
-        label: '128 kbps Standard (M4A Audio)',
-        container: 'm4a',
-        sizeInBytes: 0,
-        type: DownloadType.audioOnly,
-        resolutionOrBitrate: '128 kbps',
-        directUrl: 'https://loader.to/api/button/?url=https://www.youtube.com/watch?v=$videoId&f=m4a',
-      ),
-    ];
-
-    final videoOnlyStreams = [
-      StreamOption(
-        label: '1080p Full HD (MP4 Video)',
-        container: 'mp4',
-        sizeInBytes: 0,
-        type: DownloadType.videoOnly,
-        resolutionOrBitrate: '1080p',
-        directUrl: 'https://loader.to/api/button/?url=https://www.youtube.com/watch?v=$videoId&f=1080',
-      ),
-      StreamOption(
-        label: '1440p 2K QHD (MP4 Video)',
-        container: 'mp4',
-        sizeInBytes: 0,
-        type: DownloadType.videoOnly,
-        resolutionOrBitrate: '1440p',
-        directUrl: 'https://loader.to/api/button/?url=https://www.youtube.com/watch?v=$videoId&f=1440',
-      ),
-    ];
-
     return ParsedVideoInfo(
       id: videoId,
       title: title,
@@ -225,8 +162,6 @@ class YoutubeService {
       uploadDate: null,
       description: '',
       muxedStreams: muxedStreams,
-      audioStreams: audioStreams,
-      videoOnlyStreams: videoOnlyStreams,
     );
   }
 

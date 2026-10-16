@@ -94,10 +94,6 @@ class TiktokService {
     final noWatermarkPlay = data['play'] as String?;
     final hdPlay = data['hdplay'] as String?;
     final wmPlay = data['wmplay'] as String?;
-    final musicUrl = data['music'] as String?;
-    final musicInfo = data['music_info'] as Map<String, dynamic>?;
-    final musicTitle = musicInfo?['title'] as String? ?? 'Original Sound';
-
     final size = data['size'] as int? ?? 0;
     final hdSize = data['hd_size'] as int? ?? 0;
 
@@ -128,21 +124,9 @@ class TiktokService {
       ));
     }
 
-    final audioStreams = <StreamOption>[];
-    if (musicUrl != null && musicUrl.isNotEmpty) {
-      audioStreams.add(StreamOption(
-        label: '$musicTitle (MP3 Audio)',
-        container: 'mp3',
-        sizeInBytes: 0,
-        type: DownloadType.audioOnly,
-        resolutionOrBitrate: '320 kbps',
-        directUrl: musicUrl.startsWith('http') ? musicUrl : 'https://www.tikwm.com$musicUrl',
-      ));
-    }
-
-    final videoOnlyStreams = <StreamOption>[];
+    final watermarkedStreams = <StreamOption>[];
     if (wmPlay != null && wmPlay.isNotEmpty) {
-      videoOnlyStreams.add(StreamOption(
+      watermarkedStreams.add(StreamOption(
         label: 'Original with Watermark (MP4)',
         container: 'mp4',
         sizeInBytes: size,
@@ -166,8 +150,7 @@ class TiktokService {
       description: cleanTitle,
       platform: VideoPlatform.tiktok,
       muxedStreams: muxedStreams,
-      audioStreams: audioStreams,
-      videoOnlyStreams: videoOnlyStreams,
+      watermarkedStreams: watermarkedStreams,
     );
   }
 
@@ -194,10 +177,6 @@ class TiktokService {
     final noWatermark = videoData?['noWatermark'] as String?;
     final watermark = videoData?['watermark'] as String?;
 
-    final musicData = json['music'] as Map<String, dynamic>?;
-    final musicPlayUrl = musicData?['play_url'] as String?;
-    final musicTitle = musicData?['title'] as String? ?? 'Original Sound';
-
     final muxedStreams = <StreamOption>[];
     if (noWatermark != null && noWatermark.isNotEmpty) {
       muxedStreams.add(StreamOption(
@@ -211,21 +190,9 @@ class TiktokService {
       ));
     }
 
-    final audioStreams = <StreamOption>[];
-    if (musicPlayUrl != null && musicPlayUrl.isNotEmpty) {
-      audioStreams.add(StreamOption(
-        label: '$musicTitle (MP3 Audio)',
-        container: 'mp3',
-        sizeInBytes: 0,
-        type: DownloadType.audioOnly,
-        resolutionOrBitrate: '320 kbps',
-        directUrl: musicPlayUrl,
-      ));
-    }
-
-    final videoOnlyStreams = <StreamOption>[];
+    final watermarkedStreams = <StreamOption>[];
     if (watermark != null && watermark.isNotEmpty) {
-      videoOnlyStreams.add(StreamOption(
+      watermarkedStreams.add(StreamOption(
         label: 'With Watermark (MP4)',
         container: 'mp4',
         sizeInBytes: 0,
@@ -248,8 +215,7 @@ class TiktokService {
       description: title,
       platform: VideoPlatform.tiktok,
       muxedStreams: muxedStreams,
-      audioStreams: audioStreams,
-      videoOnlyStreams: videoOnlyStreams,
+      watermarkedStreams: watermarkedStreams,
     );
   }
 

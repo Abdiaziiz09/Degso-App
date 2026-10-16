@@ -16,11 +16,7 @@ class PlatformFileHelper {
         // Modern Android (API 29+) does not require storage permissions for app storage or MediaStore
         final videoStatus = await Permission.videos.status;
         if (!videoStatus.isGranted) {
-          await [
-            Permission.videos,
-            Permission.audio,
-            Permission.photos,
-          ].request();
+          await [Permission.videos, Permission.photos].request();
         }
       } else if (Platform.isIOS) {
         final hasAccess = await Gal.hasAccess(toAlbum: true);

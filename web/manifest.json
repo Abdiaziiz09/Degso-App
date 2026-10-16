@@ -1,6 +1,6 @@
 {
-    "name": "degso_app",
-    "short_name": "degso_app",
+    "name": "Degso",
+    "short_name": "Degso",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

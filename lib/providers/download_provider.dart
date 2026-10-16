@@ -90,6 +90,10 @@ class DownloadProvider extends ChangeNotifier {
     required ParsedVideoInfo video,
     required StreamOption option,
   }) async {
+    if (!option.isMp4VideoWithAudio) {
+      throw ArgumentError('Only MP4 video downloads with audio are supported.');
+    }
+
     try {
       await _storageService.requestStoragePermission();
     } catch (e) {
@@ -174,14 +178,17 @@ class DownloadProvider extends ChangeNotifier {
 
       // Successfully finished
       downloadItem.status = DownloadStatus.completed;
-      downloadItem.downloadedBytes =
-          downloadItem.totalBytes > 0 ? downloadItem.totalBytes : downloadItem.downloadedBytes;
+      downloadItem.downloadedBytes = downloadItem.totalBytes > 0
+          ? downloadItem.totalBytes
+          : downloadItem.downloadedBytes;
       downloadItem.completedAt = DateTime.now();
 
       // Automatically save video to Device Gallery (Degso Album)
-      if (downloadItem.type != DownloadType.audioOnly && targetPath.isNotEmpty) {
+      if (downloadItem.type != DownloadType.audioOnly &&
+          targetPath.isNotEmpty) {
         try {
-          final isVideo = downloadItem.fileExtension.toLowerCase() != 'mp3' &&
+          final isVideo =
+              downloadItem.fileExtension.toLowerCase() != 'mp3' &&
               downloadItem.fileExtension.toLowerCase() != 'm4a';
           await _storageService.saveToGallery(targetPath, isVideo: isVideo);
         } catch (e) {
@@ -200,7 +207,10 @@ class DownloadProvider extends ChangeNotifier {
         downloadItem.errorMessage = 'Download cancelled';
       } else {
         downloadItem.status = DownloadStatus.failed;
-        downloadItem.errorMessage = e.toString().replaceFirst('Exception: ', '');
+        downloadItem.errorMessage = e.toString().replaceFirst(
+          'Exception: ',
+          '',
+        );
       }
 
       _activeDownloads.remove(downloadItem.id);
@@ -239,7 +249,10 @@ class DownloadProvider extends ChangeNotifier {
   Future<bool> saveItemToGallery(DownloadItem item) async {
     if (item.filePath != null) {
       final isVideo = item.type != DownloadType.audioOnly;
-      return await _storageService.saveToGallery(item.filePath!, isVideo: isVideo);
+      return await _storageService.saveToGallery(
+        item.filePath!,
+        isVideo: isVideo,
+      );
     }
     return false;
   }
@@ -252,7 +265,10 @@ class DownloadProvider extends ChangeNotifier {
   }
 
   /// Delete a record from history and optionally remove its file from disk
-  Future<void> deleteHistoryItem(DownloadItem item, {bool deleteFileFromDisk = true}) async {
+  Future<void> deleteHistoryItem(
+    DownloadItem item, {
+    bool deleteFileFromDisk = true,
+  }) async {
     if (deleteFileFromDisk && item.filePath != null) {
       await _storageService.deleteFile(item.filePath!);
     }

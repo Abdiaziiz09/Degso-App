@@ -27,6 +27,9 @@ class StreamOption {
     this.isNoWatermark = false,
   });
 
+  bool get isMp4VideoWithAudio =>
+      container.toLowerCase() == 'mp4' && type == DownloadType.videoWithAudio;
+
   String get formattedSize {
     if (sizeInBytes <= 0) return 'Unknown size';
     const suffixes = ['B', 'KB', 'MB', 'GB'];
@@ -52,9 +55,8 @@ class ParsedVideoInfo {
   final DateTime? uploadDate;
   final String description;
   final VideoPlatform platform;
-  final List<StreamOption> muxedStreams; // Video + Audio (ready to play / No-Watermark HD)
-  final List<StreamOption> audioStreams; // Audio only (mp3/m4a/webm)
-  final List<StreamOption> videoOnlyStreams; // High-res video only / Watermarked video
+  final List<StreamOption> muxedStreams;
+  final List<StreamOption> watermarkedStreams;
 
   ParsedVideoInfo({
     required this.id,
@@ -69,8 +71,7 @@ class ParsedVideoInfo {
     required this.description,
     this.platform = VideoPlatform.youtube,
     required this.muxedStreams,
-    required this.audioStreams,
-    required this.videoOnlyStreams,
+    this.watermarkedStreams = const [],
   });
 
   String get formattedDuration {

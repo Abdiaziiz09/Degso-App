@@ -19,24 +19,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _urlController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  final List<Map<String, dynamic>> _samplePresets = [
-    {
-      'title': 'Big Buck Bunny (YouTube)',
-      'url': 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
-      'isTiktok': false,
-    },
-    {
-      'title': 'Flutter in 100s (YouTube)',
-      'url': 'https://www.youtube.com/watch?v=b_sQ9bMltGU',
-      'isTiktok': false,
-    },
-    {
-      'title': 'TikTok Sample (No-Watermark)',
-      'url': 'https://www.tiktok.com/@tiktok/video/7106594312292453678',
-      'isTiktok': true,
-    },
-  ];
-
   @override
   void dispose() {
     _urlController.dispose();
@@ -121,13 +103,14 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryRed,
-                borderRadius: BorderRadius.circular(8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/logo.png',
+                width: 34,
+                height: 34,
+                fit: BoxFit.cover,
               ),
-              child: const Icon(Icons.download_rounded, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 10),
             const Text(
@@ -225,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Download videos in HD with no watermark, extract original MP3 audio, and save directly to your device Gallery.',
+                    'Download MP4 videos with sound and save directly to your device Gallery.',
                     style: TextStyle(
                       fontSize: 12.5,
                       color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
@@ -294,50 +277,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       : 'Fetch Video Information',
                 ),
               ),
-            ),
-
-            // Preset samples
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Text(
-                  'Quick Samples:',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _samplePresets.map((preset) {
-                        final isTiktok = preset['isTiktok'] as bool;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ActionChip(
-                            label: Text(
-                              preset['title'] as String,
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                            avatar: Icon(
-                              isTiktok ? Icons.music_note_rounded : Icons.play_arrow_rounded,
-                              size: 14,
-                              color: isTiktok ? Colors.cyanAccent : AppTheme.primaryRed,
-                            ),
-                            onPressed: () {
-                              _urlController.text = preset['url'] as String;
-                              _search();
-                            },
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ],
             ),
 
             const SizedBox(height: 16),

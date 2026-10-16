@@ -17,9 +17,7 @@ class SettingsScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
@@ -32,17 +30,26 @@ class SettingsScreen extends StatelessWidget {
                   ListTile(
                     leading: const CircleAvatar(
                       backgroundColor: Colors.green,
-                      child: Icon(Icons.photo_library_rounded, color: Colors.white, size: 20),
+                      child: Icon(
+                        Icons.photo_library_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                     title: const Text(
                       'Device Gallery Album',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                     subtitle: Text(
                       'Saved to "Degso" album in your native Gallery / Photos app',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
                       ),
                     ),
                     trailing: TextButton.icon(
@@ -55,7 +62,11 @@ class SettingsScreen extends StatelessWidget {
                 ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: AppTheme.primaryRed,
-                    child: Icon(Icons.folder_rounded, color: Colors.white, size: 20),
+                    child: Icon(
+                      Icons.folder_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                   title: const Text(
                     'Storage Folder Path',
@@ -67,7 +78,9 @@ class SettingsScreen extends StatelessWidget {
                         : 'Default system downloads folder',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      color: isDark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade600,
                     ),
                   ),
                   trailing: IconButton(
@@ -75,11 +88,16 @@ class SettingsScreen extends StatelessWidget {
                     tooltip: 'Copy path',
                     onPressed: () {
                       if (downloadProvider.downloadDirectoryPath.isNotEmpty) {
-                        Clipboard.setData(ClipboardData(
-                            text: downloadProvider.downloadDirectoryPath));
+                        Clipboard.setData(
+                          ClipboardData(
+                            text: downloadProvider.downloadDirectoryPath,
+                          ),
+                        );
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Download directory path copied to clipboard'),
+                            content: Text(
+                              'Download directory path copied to clipboard',
+                            ),
                             duration: Duration(seconds: 2),
                           ),
                         );
@@ -91,7 +109,11 @@ class SettingsScreen extends StatelessWidget {
                 ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: Colors.blueAccent,
-                    child: Icon(Icons.history_rounded, color: Colors.white, size: 20),
+                    child: Icon(
+                      Icons.history_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                   title: const Text(
                     'Total Downloaded Items',
@@ -166,10 +188,13 @@ class SettingsScreen extends StatelessWidget {
                       color: AppTheme.primaryRed,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                    child: const Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.white,
+                    ),
                   ),
                   title: const Text(
-                    'Degso Downloader',
+                    'Degso',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: const Text('Version 1.0.0'),
@@ -177,8 +202,12 @@ class SettingsScreen extends StatelessWidget {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Text(
-                    'Degso Downloader is a high-performance, open-source video and audio downloader for YouTube built with Flutter and YoutubeExplode.\n\nVideos are automatically exported to your device Gallery/Photos in the "Degso" album for offline playback.',
-                    style: TextStyle(fontSize: 12, height: 1.4, color: Colors.grey),
+                    'Degso is a high-performance video downloader for YouTube and TikTok.\n\nMP4 videos are saved with their sound included and exported to your device Gallery/Photos in the "Degso" album for offline playback.\n\nDeveloped by: Engineer Abdiaziz Abdirahman Bakaal.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.4,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
               ],
