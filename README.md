@@ -214,4 +214,4 @@ test/                       Flutter tests
 
 ## Developer
 
-**Engineer Abdiaziz Abdirahman Bakaal**
+**Engineer Abdiaziz Abdirahman Hassan**
