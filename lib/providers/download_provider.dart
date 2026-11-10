@@ -5,10 +5,16 @@ import '../models/video_info_model.dart';
 import '../services/storage_service.dart';
 import '../services/tiktok_service.dart';
 import '../services/youtube_service.dart';
+import '../services/facebook_service.dart';
+import '../services/pinterest_service.dart';
+import '../services/twitter_service.dart';
 
 class DownloadProvider extends ChangeNotifier {
   final YoutubeService _youtubeService = YoutubeService();
   final TiktokService _tiktokService = TiktokService();
+  final FacebookService _facebookService = FacebookService();
+  final PinterestService _pinterestService = PinterestService();
+  final TwitterService _twitterService = TwitterService();
   final StorageService _storageService = StorageService();
   final Uuid _uuid = const Uuid();
 
@@ -42,11 +48,12 @@ class DownloadProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Search and fetch details of a YouTube or TikTok video (Auto-detect platform)
+  /// Auto-detect platform and fetch video info
   Future<bool> fetchVideoInfo(String urlOrId) async {
     final cleaned = YoutubeService.cleanInput(urlOrId);
     if (cleaned.isEmpty) {
-      _videoFetchError = 'Please enter a valid YouTube or TikTok link';
+      _videoFetchError =
+          'Please enter a valid YouTube, TikTok, Facebook, Pinterest, or X link.';
       notifyListeners();
       return false;
     }
@@ -57,16 +64,22 @@ class DownloadProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (TiktokService.isValidUrl(cleaned)) {
-        // Fetch from TikTok
-        final info = await _tiktokService.fetchVideoDetails(cleaned);
-        _currentVideo = info;
+      ParsedVideoInfo info;
+
+      if (FacebookService.isValidUrl(cleaned)) {
+        info = await _facebookService.fetchVideoDetails(cleaned);
+      } else if (PinterestService.isValidUrl(cleaned)) {
+        info = await _pinterestService.fetchVideoDetails(cleaned);
+      } else if (TwitterService.isValidUrl(cleaned)) {
+        info = await _twitterService.fetchVideoDetails(cleaned);
+      } else if (TiktokService.isValidUrl(cleaned)) {
+        info = await _tiktokService.fetchVideoDetails(cleaned);
       } else {
-        // Fetch from YouTube
-        final info = await _youtubeService.fetchVideoDetails(cleaned);
-        _currentVideo = info;
+        // Default: YouTube
+        info = await _youtubeService.fetchVideoDetails(cleaned);
       }
 
+      _currentVideo = info;
       _isLoadingVideo = false;
       notifyListeners();
       return true;
@@ -90,10 +103,7 @@ class DownloadProvider extends ChangeNotifier {
     required ParsedVideoInfo video,
     required StreamOption option,
   }) async {
-    if (!option.isMp4VideoWithAudio) {
-      throw ArgumentError('Only MP4 video downloads with audio are supported.');
-    }
-
+    // Allow any container/type — no longer restricted to MP4-with-audio only
     try {
       await _storageService.requestStoragePermission();
     } catch (e) {
@@ -127,7 +137,6 @@ class DownloadProvider extends ChangeNotifier {
     _cancelTokens[downloadId] = cancelToken;
     notifyListeners();
 
-    // Trigger async download
     _runDownloadTask(
       video: video,
       downloadItem: downloadItem,
@@ -147,33 +156,48 @@ class DownloadProvider extends ChangeNotifier {
     required DownloadCancelToken cancelToken,
   }) async {
     try {
-      if (video.platform == VideoPlatform.tiktok) {
-        // Download via TikTok stream handler
-        await _tiktokService.downloadStream(
-          option: option,
-          destinationPath: targetPath,
-          cancelToken: cancelToken,
-          onProgress: (downloaded, total, speed) {
-            downloadItem.downloadedBytes = downloaded;
-            if (downloadItem.totalBytes <= 0 && total > 0) {
-              // Dynamically update total bytes if originally unknown
-            }
-            downloadItem.speedBytesPerSec = speed;
-            notifyListeners();
-          },
-        );
-      } else {
-        // Download via YouTube stream handler
-        await _youtubeService.downloadStream(
-          option: option,
-          destinationPath: targetPath,
-          cancelToken: cancelToken,
-          onProgress: (downloaded, total, speed) {
-            downloadItem.downloadedBytes = downloaded;
-            downloadItem.speedBytesPerSec = speed;
-            notifyListeners();
-          },
-        );
+      void onProgress(int downloaded, int total, double speed) {
+        downloadItem.downloadedBytes = downloaded;
+        downloadItem.speedBytesPerSec = speed;
+        notifyListeners();
+      }
+
+      switch (video.platform) {
+        case VideoPlatform.tiktok:
+          await _tiktokService.downloadStream(
+            option: option,
+            destinationPath: targetPath,
+            cancelToken: cancelToken,
+            onProgress: onProgress,
+          );
+        case VideoPlatform.facebook:
+          await _facebookService.downloadStream(
+            option: option,
+            destinationPath: targetPath,
+            cancelToken: cancelToken,
+            onProgress: onProgress,
+          );
+        case VideoPlatform.pinterest:
+          await _pinterestService.downloadStream(
+            option: option,
+            destinationPath: targetPath,
+            cancelToken: cancelToken,
+            onProgress: onProgress,
+          );
+        case VideoPlatform.x:
+          await _twitterService.downloadStream(
+            option: option,
+            destinationPath: targetPath,
+            cancelToken: cancelToken,
+            onProgress: onProgress,
+          );
+        case VideoPlatform.youtube:
+          await _youtubeService.downloadStream(
+            option: option,
+            destinationPath: targetPath,
+            cancelToken: cancelToken,
+            onProgress: onProgress,
+          );
       }
 
       // Successfully finished
@@ -183,9 +207,8 @@ class DownloadProvider extends ChangeNotifier {
           : downloadItem.downloadedBytes;
       downloadItem.completedAt = DateTime.now();
 
-      // Automatically save video to Device Gallery (Degso Album)
-      if (downloadItem.type != DownloadType.audioOnly &&
-          targetPath.isNotEmpty) {
+      // Auto-save to device gallery
+      if (targetPath.isNotEmpty) {
         try {
           final isVideo =
               downloadItem.fileExtension.toLowerCase() != 'mp3' &&
@@ -207,12 +230,9 @@ class DownloadProvider extends ChangeNotifier {
         downloadItem.errorMessage = 'Download cancelled';
       } else {
         downloadItem.status = DownloadStatus.failed;
-        downloadItem.errorMessage = e.toString().replaceFirst(
-          'Exception: ',
-          '',
-        );
+        downloadItem.errorMessage =
+            e.toString().replaceFirst('Exception: ', '');
       }
-
       _activeDownloads.remove(downloadItem.id);
       _cancelTokens.remove(downloadItem.id);
       notifyListeners();

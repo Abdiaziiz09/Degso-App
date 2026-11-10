@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/download_item.dart';
 import '../models/video_info_model.dart';
 import '../theme/app_theme.dart';
 
@@ -28,11 +29,28 @@ class StreamSelectionSheet extends StatelessWidget {
     );
   }
 
+  /// Returns the brand colour for the platform badge
+  Color _platformColor() {
+    switch (video.platform) {
+      case VideoPlatform.tiktok:
+        return const Color(0xFFFE2C55);
+      case VideoPlatform.facebook:
+        return const Color(0xFF1877F2);
+      case VideoPlatform.pinterest:
+        return const Color(0xFFE60023);
+      case VideoPlatform.x:
+        return Colors.black87;
+      case VideoPlatform.youtube:
+        return AppTheme.primaryRed;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isTiktok = video.platform == VideoPlatform.tiktok;
+    final accent = _platformColor();
 
     return DefaultTabController(
       length: isTiktok ? 2 : 1,
@@ -51,7 +69,7 @@ class StreamSelectionSheet extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Top Drag Handle
+            // Drag handle
             const SizedBox(height: 12),
             Container(
               width: 40,
@@ -63,25 +81,22 @@ class StreamSelectionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Header with thumbnail & short title
+            // Header: thumbnail + title + platform badge
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      video.thumbnailUrl,
-                      width: 54,
-                      height: 54,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: 54,
-                        height: 54,
-                        color: Colors.grey.shade800,
-                        child: const Icon(Icons.movie, color: Colors.white),
-                      ),
-                    ),
+                    child: video.thumbnailUrl.isNotEmpty
+                        ? Image.network(
+                            video.thumbnailUrl,
+                            width: 54,
+                            height: 54,
+                            fit: BoxFit.cover,
+                            errorBuilder: (ctx, e, _) => _thumbFallback(),
+                          )
+                        : _thumbFallback(),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -96,22 +111,21 @@ class StreamSelectionSheet extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Row(
                           children: [
+                            // Platform badge
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 6,
                                 vertical: 1,
                               ),
                               decoration: BoxDecoration(
-                                color: isTiktok
-                                    ? Colors.pinkAccent
-                                    : AppTheme.primaryRed,
+                                color: accent,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                isTiktok ? 'TikTok' : 'YouTube',
+                                video.platformLabel,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -121,9 +135,7 @@ class StreamSelectionSheet extends StatelessWidget {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              isTiktok
-                                  ? 'Select MP4 Download'
-                                  : 'Select Quality',
+                              isTiktok ? 'Select MP4 Download' : 'Select Quality',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.textTheme.bodySmall?.color
                                     ?.withValues(alpha: 0.7),
@@ -145,6 +157,7 @@ class StreamSelectionSheet extends StatelessWidget {
 
             const SizedBox(height: 12),
 
+            // TikTok tab bar (No Watermark / With Watermark)
             if (isTiktok)
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -156,13 +169,12 @@ class StreamSelectionSheet extends StatelessWidget {
                   indicatorSize: TabBarIndicatorSize.tab,
                   dividerColor: Colors.transparent,
                   indicator: BoxDecoration(
-                    color: const Color(0xFFFE2C55),
+                    color: accent,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   labelColor: Colors.white,
-                  unselectedLabelColor: isDark
-                      ? Colors.grey.shade400
-                      : Colors.grey.shade700,
+                  unselectedLabelColor:
+                      isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                   labelStyle: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
@@ -180,6 +192,7 @@ class StreamSelectionSheet extends StatelessWidget {
                 ),
               ),
 
+            // Stream list(s)
             Expanded(
               child: isTiktok
                   ? TabBarView(
@@ -187,35 +200,34 @@ class StreamSelectionSheet extends StatelessWidget {
                         _buildStreamList(
                           context,
                           options: video.muxedStreams
-                              .where((option) => option.isMp4VideoWithAudio)
+                              .where((o) => o.isMp4VideoWithAudio)
                               .toList(),
                           emptyMessage: 'No clean MP4 video with audio found.',
                           bannerMessage:
                               'Clean MP4 video with its original sound.',
-                          isTiktok: true,
+                          accent: accent,
                         ),
                         _buildStreamList(
                           context,
                           options: video.watermarkedStreams
-                              .where((option) => option.isMp4VideoWithAudio)
+                              .where((o) => o.isMp4VideoWithAudio)
                               .toList(),
                           emptyMessage:
                               'No watermarked MP4 video with audio found.',
                           bannerMessage:
                               'Original MP4 video with its sound and TikTok watermark.',
-                          isTiktok: true,
+                          accent: accent,
                         ),
                       ],
                     )
                   : _buildStreamList(
                       context,
-                      options: video.muxedStreams
-                          .where((option) => option.isMp4VideoWithAudio)
-                          .toList(),
-                      emptyMessage: 'No MP4 video with audio found.',
+                      // For non-TikTok platforms show all streams (video + audio)
+                      options: video.muxedStreams,
+                      emptyMessage: 'No downloadable streams found.',
                       bannerMessage:
                           'MP4 video downloads include the original sound.',
-                      isTiktok: false,
+                      accent: accent,
                     ),
             ),
           ],
@@ -224,12 +236,19 @@ class StreamSelectionSheet extends StatelessWidget {
     );
   }
 
+  Widget _thumbFallback() => Container(
+        width: 54,
+        height: 54,
+        color: Colors.grey.shade800,
+        child: const Icon(Icons.movie, color: Colors.white),
+      );
+
   Widget _buildStreamList(
     BuildContext context, {
     required List<StreamOption> options,
     required String emptyMessage,
     String? bannerMessage,
-    required bool isTiktok,
+    required Color accent,
   }) {
     if (options.isEmpty) {
       return Center(
@@ -246,9 +265,6 @@ class StreamSelectionSheet extends StatelessWidget {
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final accentColor = isTiktok
-        ? const Color(0xFFFE2C55)
-        : AppTheme.primaryRed;
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -258,17 +274,13 @@ class StreamSelectionSheet extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.08),
+              color: accent.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+              border: Border.all(color: accent.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
-                Icon(
-                  isTiktok ? Icons.auto_awesome : Icons.info_outline,
-                  size: 16,
-                  color: accentColor,
-                ),
+                Icon(Icons.info_outline, size: 16, color: accent),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -286,6 +298,7 @@ class StreamSelectionSheet extends StatelessWidget {
           ),
         ...options.map((option) {
           final isNoWm = option.isNoWatermark;
+          final isAudio = option.type == DownloadType.audioOnly;
 
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
@@ -300,7 +313,7 @@ class StreamSelectionSheet extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isNoWm
                       ? Colors.teal.withValues(alpha: 0.15)
-                      : accentColor.withValues(alpha: 0.12),
+                      : accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
@@ -310,14 +323,16 @@ class StreamSelectionSheet extends StatelessWidget {
                           color: Colors.teal,
                           size: 22,
                         )
-                      : Text(
-                          option.container.toUpperCase(),
-                          style: TextStyle(
-                            color: accentColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
+                      : isAudio
+                          ? Icon(Icons.music_note, color: accent, size: 22)
+                          : Text(
+                              option.container.toUpperCase(),
+                              style: TextStyle(
+                                color: accent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
                 ),
               ),
               title: Row(
@@ -354,8 +369,8 @@ class StreamSelectionSheet extends StatelessWidget {
               ),
               subtitle: Text(
                 option.sizeInBytes > 0
-                    ? 'MP4 video with audio • Size: ${option.formattedSize}'
-                    : 'MP4 video with audio',
+                    ? '${option.container.toUpperCase()} · ${isAudio ? "Audio" : "Video + Audio"} · ${option.formattedSize}'
+                    : '${option.container.toUpperCase()} · ${isAudio ? "Audio only" : "Video + Audio"}',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
               trailing: ElevatedButton(
@@ -364,7 +379,7 @@ class StreamSelectionSheet extends StatelessWidget {
                   onOptionSelected(option);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: accentColor,
+                  backgroundColor: accent,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,

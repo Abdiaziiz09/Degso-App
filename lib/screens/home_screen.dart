@@ -93,6 +93,32 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Small coloured platform badge for the hero banner
+  Widget _platformBadge(String label, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 13),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -129,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Hero card banner with YouTube & TikTok badges
+            // Hero card banner — all 5 supported platforms
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
@@ -149,57 +175,21 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  // Platform badge row
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryRed,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.play_arrow_rounded, color: Colors.white, size: 14),
-                            SizedBox(width: 3),
-                            Text(
-                              'YouTube',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.black87,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.7)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.music_note_rounded, color: Colors.cyanAccent, size: 14),
-                            SizedBox(width: 3),
-                            Text(
-                              'TikTok No-Watermark',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      _platformBadge('YouTube', AppTheme.primaryRed, Icons.play_arrow_rounded),
+                      _platformBadge('TikTok', const Color(0xFFFE2C55), Icons.music_note_rounded),
+                      _platformBadge('Facebook', const Color(0xFF1877F2), Icons.facebook_rounded),
+                      _platformBadge('Pinterest', const Color(0xFFE60023), Icons.push_pin_rounded),
+                      _platformBadge('X / Twitter', Colors.black87, Icons.alternate_email_rounded),
                     ],
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'YouTube & TikTok Downloader',
+                    'All-In-One Video Downloader',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -208,7 +198,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Download MP4 videos with sound and save directly to your device Gallery.',
+                    'Download videos from YouTube, TikTok, Facebook, Pinterest, and X — '
+                    'saved directly to your Gallery.',
                     style: TextStyle(
                       fontSize: 12.5,
                       color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
@@ -228,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _search(),
               decoration: InputDecoration(
-                hintText: 'Paste YouTube or TikTok video link...',
+                hintText: 'Paste YouTube, TikTok, Facebook, Pinterest, or X link...',
                 prefixIcon: const Icon(Icons.link_rounded),
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,

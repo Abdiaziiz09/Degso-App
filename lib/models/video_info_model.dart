@@ -4,6 +4,9 @@ import 'download_item.dart';
 enum VideoPlatform {
   youtube,
   tiktok,
+  facebook,
+  pinterest,
+  x,
 }
 
 class StreamOption {
@@ -74,6 +77,22 @@ class ParsedVideoInfo {
     this.watermarkedStreams = const [],
   });
 
+  /// Platform display label
+  String get platformLabel {
+    switch (platform) {
+      case VideoPlatform.youtube:
+        return 'YouTube';
+      case VideoPlatform.tiktok:
+        return 'TikTok';
+      case VideoPlatform.facebook:
+        return 'Facebook';
+      case VideoPlatform.pinterest:
+        return 'Pinterest';
+      case VideoPlatform.x:
+        return 'X (Twitter)';
+    }
+  }
+
   String get formattedDuration {
     if (duration == null) return 'Video';
     final hours = duration!.inHours;
@@ -89,7 +108,7 @@ class ParsedVideoInfo {
 
   String get formattedViews {
     if (viewCount <= 0) {
-      return platform == VideoPlatform.tiktok ? 'TikTok Video' : 'YouTube Video';
+      return '$platformLabel Video';
     }
     if (viewCount >= 1000000) {
       return '${(viewCount / 1000000).toStringAsFixed(1)}M views';

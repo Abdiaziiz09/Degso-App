@@ -13,10 +13,60 @@ class VideoPreviewCard extends StatelessWidget {
     required this.onDownloadPressed,
   });
 
+  /// Returns the brand colour for each platform
+  Color _platformColor() {
+    switch (video.platform) {
+      case VideoPlatform.tiktok:
+        return const Color(0xFFFE2C55);
+      case VideoPlatform.facebook:
+        return const Color(0xFF1877F2);
+      case VideoPlatform.pinterest:
+        return const Color(0xFFE60023);
+      case VideoPlatform.x:
+        return Colors.black87;
+      case VideoPlatform.youtube:
+        return AppTheme.primaryRed;
+    }
+  }
+
+  /// Returns the icon for each platform
+  IconData _platformIcon() {
+    switch (video.platform) {
+      case VideoPlatform.tiktok:
+        return Icons.music_note_rounded;
+      case VideoPlatform.facebook:
+        return Icons.facebook_rounded;
+      case VideoPlatform.pinterest:
+        return Icons.push_pin_rounded;
+      case VideoPlatform.x:
+        return Icons.alternate_email_rounded;
+      case VideoPlatform.youtube:
+        return Icons.play_arrow_rounded;
+    }
+  }
+
+  /// Badge label — TikTok shows "No-Watermark" extra text
+  String _platformBadgeLabel() {
+    if (video.platform == VideoPlatform.tiktok) return 'TikTok (No-Watermark)';
+    return video.platformLabel;
+  }
+
+  /// Download button label
+  String _downloadButtonLabel() {
+    switch (video.platform) {
+      case VideoPlatform.tiktok:
+        return 'Download No-Watermark MP4';
+      case VideoPlatform.youtube:
+        return 'Select MP4 Quality';
+      default:
+        return 'Select Download Quality';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final accent = _platformColor();
     final isTiktok = video.platform == VideoPlatform.tiktok;
     final dateStr = video.uploadDate != null
         ? DateFormat.yMMMd().format(video.uploadDate!)
@@ -28,44 +78,34 @@ class VideoPreviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Thumbnail with duration & platform overlay
+          // ── Thumbnail with badges overlay ──────────────────────────────
           Stack(
             children: [
               AspectRatio(
                 aspectRatio: isTiktok ? (4 / 3) : (16 / 9),
-                child: Image.network(
-                  video.thumbnailUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.grey.shade900,
-                    child: const Center(
-                      child: Icon(Icons.broken_image, size: 48, color: Colors.white54),
-                    ),
-                  ),
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: Colors.grey.shade900,
-                      child: const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    );
-                  },
-                ),
+                child: video.thumbnailUrl.isNotEmpty
+                    ? Image.network(
+                        video.thumbnailUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, e, __) => _thumbFallback(),
+                        loadingBuilder: (_, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return _thumbLoading();
+                        },
+                      )
+                    : _thumbFallback(),
               ),
 
-              // Platform Badge (YouTube vs TikTok No-Watermark)
+              // Platform badge — top-left
               Positioned(
                 top: 8,
                 left: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: isTiktok ? Colors.black87 : AppTheme.primaryRed,
+                    color: accent,
                     borderRadius: BorderRadius.circular(8),
-                    border: isTiktok
-                        ? Border.all(color: Colors.cyanAccent.withValues(alpha: 0.8), width: 1.2)
-                        : null,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.4),
@@ -76,14 +116,10 @@ class VideoPreviewCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        isTiktok ? Icons.music_note_rounded : Icons.play_arrow_rounded,
-                        color: isTiktok ? Colors.cyanAccent : Colors.white,
-                        size: 14,
-                      ),
+                      Icon(_platformIcon(), color: Colors.white, size: 14),
                       const SizedBox(width: 4),
                       Text(
-                        isTiktok ? 'TikTok (No-Watermark)' : 'YouTube',
+                        _platformBadgeLabel(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
@@ -95,13 +131,14 @@ class VideoPreviewCard extends StatelessWidget {
                 ),
               ),
 
-              // Duration Badge
+              // Duration badge — bottom-right
               if (video.duration != null && video.duration!.inSeconds > 0)
                 Positioned(
                   bottom: 8,
                   right: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(6),
@@ -119,6 +156,7 @@ class VideoPreviewCard extends StatelessWidget {
             ],
           ),
 
+          // ── Info section ───────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -136,22 +174,19 @@ class VideoPreviewCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
 
-                // Channel / Author row
+                // Author row
                 Row(
                   children: [
                     CircleAvatar(
                       radius: 12,
-                      backgroundColor: isTiktok ? Colors.black : AppTheme.primaryRed,
+                      backgroundColor: accent,
                       backgroundImage: video.authorAvatarUrl != null &&
                               video.authorAvatarUrl!.isNotEmpty
                           ? NetworkImage(video.authorAvatarUrl!)
                           : null,
-                      child: (video.authorAvatarUrl == null || video.authorAvatarUrl!.isEmpty)
-                          ? Icon(
-                              isTiktok ? Icons.person : Icons.play_arrow,
-                              size: 14,
-                              color: Colors.white,
-                            )
+                      child: (video.authorAvatarUrl == null ||
+                              video.authorAvatarUrl!.isEmpty)
+                          ? Icon(_platformIcon(), size: 14, color: Colors.white)
                           : null,
                     ),
                     const SizedBox(width: 8),
@@ -169,13 +204,14 @@ class VideoPreviewCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
 
-                // Views & Likes row
+                // Views & date row
                 Row(
                   children: [
                     Text(
                       video.formattedViews,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                        color: theme.textTheme.bodySmall?.color
+                            ?.withValues(alpha: 0.7),
                       ),
                     ),
                     if (video.formattedLikes.isNotEmpty) ...[
@@ -183,8 +219,8 @@ class VideoPreviewCard extends StatelessWidget {
                       Text(
                         video.formattedLikes,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: isTiktok ? Colors.pinkAccent : null,
-                          fontWeight: isTiktok ? FontWeight.w600 : null,
+                          color: accent,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -193,7 +229,8 @@ class VideoPreviewCard extends StatelessWidget {
                       Text(
                         dateStr,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                          color: theme.textTheme.bodySmall?.color
+                              ?.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -202,19 +239,15 @@ class VideoPreviewCard extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
-                // Download Button
+                // Download button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: onDownloadPressed,
                     icon: const Icon(Icons.download_rounded),
-                    label: Text(
-                      isTiktok
-                          ? 'Download No-Watermark MP4'
-                          : 'Select MP4 Quality',
-                    ),
+                    label: Text(_downloadButtonLabel()),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isTiktok ? const Color(0xFFFE2C55) : AppTheme.primaryRed,
+                      backgroundColor: accent,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
@@ -226,4 +259,18 @@ class VideoPreviewCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _thumbFallback() => Container(
+        color: Colors.grey.shade900,
+        child: const Center(
+          child: Icon(Icons.broken_image, size: 48, color: Colors.white54),
+        ),
+      );
+
+  Widget _thumbLoading() => Container(
+        color: Colors.grey.shade900,
+        child: const Center(
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
 }
